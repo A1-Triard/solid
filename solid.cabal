@@ -12,15 +12,18 @@ category: Web
 build-type: Simple
 -- extra-source-files:
 cabal-version: >=1.10
+data-files: ui.glade
 
 library
   hs-source-dirs: src
   exposed-modules: Solid.Gui
                  , Solid.Gui.Native
+  other-modules: Paths_solid
   build-depends: base >= 4.7 && < 5
                , gtk3
                , transformers
                , text
+               , cairo
   default-extensions: CPP
                     , TemplateHaskell
                     , ViewPatterns
