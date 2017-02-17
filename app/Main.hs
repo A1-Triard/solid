@@ -1,6 +1,6 @@
 module Main where
 
-import Lib
+import Solid.Gui
 
 main :: IO ()
-main = someFunc
+main = solid
