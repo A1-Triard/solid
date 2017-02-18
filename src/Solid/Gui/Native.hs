@@ -39,6 +39,11 @@ data RigidBody = RigidBody
   , bodyAngularVelocity :: Vec3
   }
 
+data System = System
+  { time :: !Double
+  , bodies :: [RigidBody]
+  }
+
 bodyDraw :: RigidBody -> Render ()
 bodyDraw b = do
   let v1 = bodyPosition b `vecAdd` bodyDirection b
@@ -54,6 +59,15 @@ bodyDraw b = do
   lineTo (vecX v1) (vecY v1)
   fill
 
+systemDraw :: System -> Render ()
+systemDraw s = do
+  forM_ (bodies s) bodyDraw
+  selectFontFace ("monospace" :: S.Text) FontSlantNormal FontWeightNormal
+  setFontSize 14
+  setSourceRGB 0.9 0.9 0.9
+  moveTo 10.0 20.0
+  showText $ ("Time = " ++) $ show $ time s
+
 test :: [RigidBody]
 test =
   [ RigidBody
@@ -65,27 +79,31 @@ test =
       (Vec3 0.0 0.0 0.0)
   ]
 
-advance :: [RigidBody] -> [RigidBody]
-advance = map (\x -> x { bodyPosition = bodyPosition x `vecAdd` Vec3 1.0 0.0 0.0 })
+currentSeconds :: IO Double
+currentSeconds = do
+  t <- getTime Monotonic
+  return $ fromIntegral (sec t) + fromIntegral (nsec t) * 1e-9
 
-bodiesDraw :: [RigidBody] -> Render ()
-bodiesDraw bodies = forM_ bodies bodyDraw
+advance :: Double -> System -> System
+advance !t s =
+  let b = map (\x -> x { bodyPosition = bodyPosition x `vecAdd` Vec3 1.0 0.0 0.0 }) $ bodies s in
+  System t b
 
-queueFrame :: DrawingArea -> [RigidBody] -> IO ()
-queueFrame d bodies = do
-  draw_id <- on d draw $ bodiesDraw bodies
-  void $ timeoutAdd (frame d bodies draw_id) $ round (1000.0 / fps)
+queueFrame :: IO Double -> DrawingArea -> System -> IO ()
+queueFrame get_time d s = do
+  draw_id <- on d draw $ systemDraw s
+  void $ timeoutAdd (frame get_time d s draw_id) $ round (1000.0 / fps)
 
-frame :: DrawingArea -> [RigidBody] -> ConnectId DrawingArea -> IO Bool
-frame d bodies draw_id = do
-  widgetQueueDraw d
+frame :: IO Double -> DrawingArea -> System -> ConnectId DrawingArea -> IO Bool
+frame get_time d s draw_id = do
+  t <- get_time
   signalDisconnect draw_id
-  let a = advance bodies
-  queueFrame d a
+  queueFrame get_time d $ advance t s
+  widgetQueueDraw d
   return False
 
 fps :: Double
-fps = 200.0
+fps = 100.0
 
 solid :: IO ()
 solid = do
@@ -97,6 +115,7 @@ solid = do
   void $ on window deleteEvent $ tryEvent $ lift mainQuit
   set window [windowTitle := ("Solid" :: S.Text)]
   d <- builderGetObject b castToDrawingArea ("drawingarea" :: S.Text)
-  queueFrame d test
+  t0 <- currentSeconds
+  queueFrame ((subtract t0) <$> currentSeconds) d $ System 0.0 test
   widgetShowAll window
   mainGUI

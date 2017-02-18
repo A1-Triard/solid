@@ -24,6 +24,7 @@ library
                , transformers
                , text
                , cairo
+               , clock
   default-extensions: CPP
                     , TemplateHaskell
                     , ViewPatterns
