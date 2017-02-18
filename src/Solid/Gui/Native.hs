@@ -74,9 +74,9 @@ test =
       (Vec3 0.7 0.6 0.5)
       1.0
       (Vec3 300.0 300.0 0.0)
-      (Vec3 0.0 0.0 0.0)
+      (Vec3 1.0 0.0 0.0)
       (Vec3 20.0 20.0 0.0)
-      (Vec3 0.0 0.0 0.0)
+      (Vec3 0.0 0.0 1.0)
   ]
 
 currentSeconds :: IO Double
@@ -84,10 +84,15 @@ currentSeconds = do
   t <- getTime Monotonic
   return $ fromIntegral (sec t) + fromIntegral (nsec t) * 1e-9
 
+advancePosition :: Double -> [RigidBody] -> [RigidBody]
+advancePosition d s =
+  map (\x -> x
+    { bodyPosition = bodyPosition x `vecAdd` Vec3 (100.0 * d) 0.0 0.0
+    , bodyDirection = bodyDirection x `vecAdd` (d `vecMult` (bodyAngularVelocity x `crossProduct` bodyDirection x))
+    }) s
+
 advanceCore :: Double -> System -> System
-advanceCore d s =
-  let b = map (\x -> x { bodyPosition = bodyPosition x `vecAdd` Vec3 (100.0 * d) 0.0 0.0 }) $ bodies s in
-  System (time s + d) b
+advanceCore d s = System (time s + d) (advancePosition d $ bodies s)
 
 advance :: Double -> System -> System
 advance !t s =
