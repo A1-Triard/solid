@@ -57,13 +57,35 @@ bodyDraw b = do
 test :: [RigidBody]
 test =
   [ RigidBody
-      (Vec3 1.0 1.0 1.0)
+      (Vec3 0.7 0.6 0.5)
       1.0
       (Vec3 300.0 300.0 0.0)
       (Vec3 0.0 0.0 0.0)
-      (Vec3 0.0 10.0 0.0)
+      (Vec3 20.0 20.0 0.0)
       (Vec3 0.0 0.0 0.0)
   ]
+
+advance :: [RigidBody] -> [RigidBody]
+advance = map (\x -> x { bodyPosition = bodyPosition x `vecAdd` Vec3 1.0 0.0 0.0 })
+
+bodiesDraw :: [RigidBody] -> Render ()
+bodiesDraw bodies = forM_ bodies bodyDraw
+
+queueFrame :: DrawingArea -> [RigidBody] -> IO ()
+queueFrame d bodies = do
+  draw_id <- on d draw $ bodiesDraw bodies
+  void $ timeoutAdd (frame d bodies draw_id) $ round (1000.0 / fps)
+
+frame :: DrawingArea -> [RigidBody] -> ConnectId DrawingArea -> IO Bool
+frame d bodies draw_id = do
+  widgetQueueDraw d
+  signalDisconnect draw_id
+  let a = advance bodies
+  queueFrame d a
+  return False
+
+fps :: Double
+fps = 200.0
 
 solid :: IO ()
 solid = do
@@ -75,7 +97,6 @@ solid = do
   void $ on window deleteEvent $ tryEvent $ lift mainQuit
   set window [windowTitle := ("Solid" :: S.Text)]
   d <- builderGetObject b castToDrawingArea ("drawingarea" :: S.Text)
-  void $ on d draw $ do
-    forM_ test bodyDraw
+  queueFrame d test
   widgetShowAll window
   mainGUI
