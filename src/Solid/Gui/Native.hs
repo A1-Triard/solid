@@ -84,10 +84,15 @@ currentSeconds = do
   t <- getTime Monotonic
   return $ fromIntegral (sec t) + fromIntegral (nsec t) * 1e-9
 
+advanceCore :: Double -> System -> System
+advanceCore d s =
+  let b = map (\x -> x { bodyPosition = bodyPosition x `vecAdd` Vec3 (100.0 * d) 0.0 0.0 }) $ bodies s in
+  System (time s + d) b
+
 advance :: Double -> System -> System
 advance !t s =
-  let b = map (\x -> x { bodyPosition = bodyPosition x `vecAdd` Vec3 1.0 0.0 0.0 }) $ bodies s in
-  System t b
+  let steps = ceiling $ (t - time s) / dt in
+  fromMaybe s $ listToMaybe $ drop steps $ iterate (advanceCore dt) s
 
 queueFrame :: IO Double -> DrawingArea -> System -> IO ()
 queueFrame get_time d s = do
@@ -104,6 +109,9 @@ frame get_time d s draw_id = do
 
 fps :: Double
 fps = 100.0
+
+dt :: Double
+dt = 0.001
 
 solid :: IO ()
 solid = do
