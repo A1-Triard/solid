@@ -18,6 +18,8 @@ library
   hs-source-dirs: src
   exposed-modules: Solid.Gui
                  , Solid.Gui.Native
+                 , Data.MatrixSpace
+                 , Data.MatrixSpace.Native
   other-modules: Paths_solid
   build-depends: base >= 4.7 && < 5
                , gtk3
@@ -25,6 +27,8 @@ library
                , text
                , cairo
                , clock
+               , matrix
+               , vector-space
   default-extensions: CPP
                     , TemplateHaskell
                     , ViewPatterns
@@ -60,6 +64,8 @@ library
                     , DataKinds
                     , ExplicitForAll
                     , BangPatterns
+                    , ScopedTypeVariables
+                    , RankNTypes
   include-dirs: include
   ghc-options: -fmax-pmcheck-iterations=10000000 -O2 -Wall -Werror -fno-warn-unused-imports -fprint-potential-instances
   default-language: Haskell2010
@@ -105,6 +111,8 @@ executable solid-demo
                     , DataKinds
                     , ExplicitForAll
                     , BangPatterns
+                    , ScopedTypeVariables
+                    , RankNTypes
   include-dirs: include
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -fmax-pmcheck-iterations=10000000 -O2 -Wall -Werror -fno-warn-unused-imports -fprint-potential-instances
   default-language: Haskell2010
@@ -151,6 +159,8 @@ test-suite solid-test
                     , DataKinds
                     , ExplicitForAll
                     , BangPatterns
+                    , ScopedTypeVariables
+                    , RankNTypes
   include-dirs: include
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -fmax-pmcheck-iterations=10000000 -O2 -Wall -Werror -fno-warn-unused-imports -fprint-potential-instances
   default-language: Haskell2010

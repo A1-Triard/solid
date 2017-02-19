@@ -1,42 +1,16 @@
 module Solid.Gui.Native where
+
 #include <haskell>
+import Data.MatrixSpace
 import Paths_solid
 
-data Vec3 = Vec3
-  { vecX :: Double
-  , vecY :: Double
-  , vecZ :: Double
-  }
-
-{-# INLINE vecMult #-}
-vecMult :: Double -> Vec3 -> Vec3
-vecMult c (Vec3 x y z) = Vec3 (c * x) (c * y) (c * z)
-
-{-# INLINE vecAdd #-}
-vecAdd :: Vec3 -> Vec3 -> Vec3
-vecAdd (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = Vec3 (x1 + x2) (y1 + y2) (z1 + z2)
-
-{-# INLINE scalarProduct #-}
-scalarProduct :: Vec3 -> Vec3 -> Double
-scalarProduct (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = x1 * x2 + y1 * y2 + z1 * z2
-
-{-# INLINE crossProduct #-}
-crossProduct :: Vec3 -> Vec3 -> Vec3
-crossProduct (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = Vec3 (y1 * z2 - z1 * y2) (z1 * x2 - x1 * z2) (x1 * y2 - y1 * x2)
-
-{-
-{-# INLINE vecRotate #-}
-vecRotate :: Vec3 -> Double -> Vec3 -> Vec3
-vecRotate (Vec3 x y z) angle (Vec3 axe_x axe_y axe_z) =
--}
-
 data RigidBody = RigidBody
-  { bodyColor :: Vec3
+  { bodyColor :: Vec 3 Double
   , bodyMass :: Double
-  , bodyPosition :: Vec3
-  , bodyVelocity :: Vec3
-  , bodyDirection :: Vec3
-  , bodyAngularVelocity :: Vec3
+  , bodyPosition :: Vec 3 Double
+  , bodyVelocity :: Vec 3 Double
+  , bodyDirection :: Vec 3 Double
+  , bodyAngularVelocity :: Vec 3 Double
   }
 
 data System = System
@@ -46,10 +20,10 @@ data System = System
 
 bodyDraw :: RigidBody -> Render ()
 bodyDraw b = do
-  let v1 = bodyPosition b `vecAdd` bodyDirection b
-  let v2 = bodyPosition b `vecAdd` Vec3 (vecY $ bodyDirection b) (-(vecX $ bodyDirection b)) (vecZ $ bodyDirection b)
-  let v3 = bodyPosition b `vecAdd` Vec3 (-(vecX $ bodyDirection b)) (-(vecY $ bodyDirection b)) (vecZ $ bodyDirection b)
-  let v4 = bodyPosition b `vecAdd` Vec3 (-(vecY $ bodyDirection b)) (vecX $ bodyDirection b) (vecZ $ bodyDirection b)
+  let v1 = bodyPosition b ^+^ bodyDirection b
+  let v2 = bodyPosition b ^+^ vec3 (vecY $ bodyDirection b) (-(vecX $ bodyDirection b)) (vecZ $ bodyDirection b)
+  let v3 = bodyPosition b ^+^ vec3 (-(vecX $ bodyDirection b)) (-(vecY $ bodyDirection b)) (vecZ $ bodyDirection b)
+  let v4 = bodyPosition b ^+^ vec3 (-(vecY $ bodyDirection b)) (vecX $ bodyDirection b) (vecZ $ bodyDirection b)
   setSourceRGB (vecX $ bodyColor b) (vecY $ bodyColor b) (vecZ $ bodyColor b)
   setLineWidth 1.0
   moveTo (vecX v1) (vecY v1)
@@ -71,12 +45,12 @@ systemDraw s = do
 test :: [RigidBody]
 test =
   [ RigidBody
-      (Vec3 0.7 0.6 0.5)
+      (vec3 0.7 0.6 0.5)
       1.0
-      (Vec3 300.0 300.0 0.0)
-      (Vec3 1.0 0.0 0.0)
-      (Vec3 20.0 20.0 0.0)
-      (Vec3 0.0 0.0 1.0)
+      (vec3 300.0 300.0 0.0)
+      (vec3 100.0 0.0 0.0)
+      (vec3 20.0 20.0 0.0)
+      (vec3 0.0 0.0 1.0)
   ]
 
 currentSeconds :: IO Double
@@ -87,9 +61,19 @@ currentSeconds = do
 advancePosition :: Double -> [RigidBody] -> [RigidBody]
 advancePosition d s =
   map (\x -> x
-    { bodyPosition = bodyPosition x `vecAdd` Vec3 (100.0 * d) 0.0 0.0
-    , bodyDirection = bodyDirection x `vecAdd` (d `vecMult` (bodyAngularVelocity x `crossProduct` bodyDirection x))
+    { bodyPosition = bodyPosition x ^+^ (d *^ bodyVelocity x)
+    , bodyDirection = bodyDirection x ^+^ (d *^ (bodyAngularVelocity x `cross3` bodyDirection x))
     }) s
+
+{-
+advanceVelosity :: Double -> [RigidBody] -> [RigidBody]
+advanceVelosity d s =
+  map (\x -> let a = 
+    x
+    { bodyVelocity = bodyVelocity x ^+^ Vec3 (100.0 * d) 0.0 0.0
+    --, bodyAngularVelocity = bodyDirection x ^+^ (d *^ (bodyAngularVelocity x `crossProduct` bodyDirection x))
+    }) s
+-}
 
 advanceCore :: Double -> System -> System
 advanceCore d s = System (time s + d) (advancePosition d $ bodies s)
