@@ -6,6 +6,10 @@ module Data.MatrixSpace
  , vecY
  , vecZ
  , vec3
+ , (^*^)
+ , qrotation
+ , qconjugate
+ , qrotate
  ) where
 
 import Data.MatrixSpace.Native

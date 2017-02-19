@@ -9,7 +9,7 @@ data RigidBody = RigidBody
   , bodyMass :: Double
   , bodyPosition :: Vec 3 Double
   , bodyVelocity :: Vec 3 Double
-  , bodyDirection :: Vec 3 Double
+  , bodyDirection :: (Double, Vec 3 Double)
   , bodyAngularVelocity :: Vec 3 Double
   }
 
@@ -20,10 +20,11 @@ data System = System
 
 bodyDraw :: RigidBody -> Render ()
 bodyDraw b = do
-  let v1 = bodyPosition b ^+^ bodyDirection b
-  let v2 = bodyPosition b ^+^ vec3 (vecY $ bodyDirection b) (-(vecX $ bodyDirection b)) (vecZ $ bodyDirection b)
-  let v3 = bodyPosition b ^+^ vec3 (-(vecX $ bodyDirection b)) (-(vecY $ bodyDirection b)) (vecZ $ bodyDirection b)
-  let v4 = bodyPosition b ^+^ vec3 (-(vecY $ bodyDirection b)) (vecX $ bodyDirection b) (vecZ $ bodyDirection b)
+  let v = 20.0 *^ qrotate (bodyDirection b) (vec3 1.0 0.0 0.0)
+  let v1 = bodyPosition b ^+^ v
+  let v2 = bodyPosition b ^+^ vec3 (vecY v) (-(vecX v)) (vecZ v)
+  let v3 = bodyPosition b ^+^ vec3 (-(vecX v)) (-(vecY v)) (vecZ v)
+  let v4 = bodyPosition b ^+^ vec3 (-(vecY v)) (vecX v) (vecZ v)
   setSourceRGB (vecX $ bodyColor b) (vecY $ bodyColor b) (vecZ $ bodyColor b)
   setLineWidth 1.0
   moveTo (vecX v1) (vecY v1)
@@ -49,7 +50,7 @@ test =
       1.0
       (vec3 300.0 300.0 0.0)
       (vec3 100.0 0.0 0.0)
-      (vec3 20.0 20.0 0.0)
+      (qrotation (pi / 4.0) (vec3 0.0 0.0 1.0))
       (vec3 0.0 0.0 1.0)
   ]
 
@@ -62,7 +63,7 @@ advancePosition :: Double -> [RigidBody] -> [RigidBody]
 advancePosition d s =
   map (\x -> x
     { bodyPosition = bodyPosition x ^+^ (d *^ bodyVelocity x)
-    , bodyDirection = bodyDirection x ^+^ (d *^ (bodyAngularVelocity x `cross3` bodyDirection x))
+    , bodyDirection = bodyDirection x -- ^+^ (d *^ (bodyAngularVelocity x `cross3` bodyDirection x))
     }) s
 
 {-

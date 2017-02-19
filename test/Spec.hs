@@ -1,2 +1,11 @@
+#define TESTS
+#include <haskell>
+import qualified Data.MatrixSpace.Spec
+
 main :: IO ()
-main = putStrLn "Test suite not yet implemented"
+main = void $ runTestTT tests
+
+tests :: Test
+tests = TestList
+  [ Data.MatrixSpace.Spec.tests
+  ]
