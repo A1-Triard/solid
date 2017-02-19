@@ -20,7 +20,7 @@ data System = System
 
 bodyDraw :: RigidBody -> Render ()
 bodyDraw b = do
-  let v = 20.0 *^ qrotate (bodyDirection b) (vec3 1.0 0.0 0.0)
+  let v = qrotate (bodyDirection b) (vec3 20.0 0.0 0.0)
   let v1 = bodyPosition b ^+^ v
   let v2 = bodyPosition b ^+^ vec3 (vecY v) (-(vecX v)) (vecZ v)
   let v3 = bodyPosition b ^+^ vec3 (-(vecX v)) (-(vecY v)) (vecZ v)
@@ -50,7 +50,7 @@ test =
       1.0
       (vec3 300.0 300.0 0.0)
       (vec3 100.0 0.0 0.0)
-      (qrotation (pi / 4.0) (vec3 0.0 0.0 1.0))
+      (qrotation (0.3 * pi) (vec3 0.0 0.0 1.0))
       (vec3 0.0 0.0 1.0)
   ]
 
