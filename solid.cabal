@@ -18,8 +18,6 @@ library
   hs-source-dirs: src
   exposed-modules: Solid.Gui
                  , Solid.Gui.Native
-                 , Data.MatrixSpace
-                 , Data.MatrixSpace.Native
   other-modules: Paths_solid
   build-depends: base >= 4.7 && < 5
                , gtk3
@@ -27,8 +25,8 @@ library
                , text
                , cairo
                , clock
-               , matrix
-               , vector-space
+               , linear
+               , lens
   default-extensions: CPP
                     , TemplateHaskell
                     , ViewPatterns
@@ -121,7 +119,6 @@ test-suite solid-test
   type: exitcode-stdio-1.0
   hs-source-dirs: test
   main-is: Spec.hs
-  other-modules: Data.MatrixSpace.Spec
   build-depends: base
                , solid
                , HUnit
@@ -130,8 +127,8 @@ test-suite solid-test
                , text
                , cairo
                , clock
-               , matrix
-               , vector-space
+               , linear
+               , lens
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   default-extensions: CPP
                     , TemplateHaskell

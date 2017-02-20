@@ -1,16 +1,15 @@
 module Solid.Gui.Native where
 
 #include <haskell>
-import Data.MatrixSpace
 import Paths_solid
 
 data RigidBody = RigidBody
-  { bodyColor :: Vec 3 Double
+  { bodyColor :: V3 Double
   , bodyMass :: Double
-  , bodyPosition :: Vec 3 Double
-  , bodyVelocity :: Vec 3 Double
-  , bodyDirection :: (Double, Vec 3 Double)
-  , bodyAngularVelocity :: Vec 3 Double
+  , bodyPosition :: V3 Double
+  , bodyVelocity :: V3 Double
+  , bodyDirection :: Quaternion Double
+  , bodyAngularVelocity :: V3 Double
   }
 
 data System = System
@@ -20,18 +19,18 @@ data System = System
 
 bodyDraw :: RigidBody -> Render ()
 bodyDraw b = do
-  let v = qrotate (bodyDirection b) (vec3 20.0 0.0 0.0)
-  let v1 = bodyPosition b ^+^ v
-  let v2 = bodyPosition b ^+^ vec3 (vecY v) (-(vecX v)) (vecZ v)
-  let v3 = bodyPosition b ^+^ vec3 (-(vecX v)) (-(vecY v)) (vecZ v)
-  let v4 = bodyPosition b ^+^ vec3 (-(vecY v)) (vecX v) (vecZ v)
-  setSourceRGB (vecX $ bodyColor b) (vecY $ bodyColor b) (vecZ $ bodyColor b)
+  let v = L.rotate (bodyDirection b) (V3 20.0 0.0 0.0)
+  let v1 = bodyPosition b + v
+  let v2 = bodyPosition b + V3 (v ^._y) (-(v ^._x)) (v ^._z)
+  let v3 = bodyPosition b + V3 (-(v ^._x)) (-(v ^._y)) (v ^._z)
+  let v4 = bodyPosition b + V3 (-(v ^._y)) (v ^._x) (v ^._z)
+  setSourceRGB (bodyColor b ^._x) (bodyColor b ^._y) (bodyColor b ^._z)
   setLineWidth 1.0
-  moveTo (vecX v1) (vecY v1)
-  lineTo (vecX v3) (vecY v3)
-  lineTo (vecX v4) (vecY v4)
-  lineTo (vecX v2) (vecY v2)
-  lineTo (vecX v1) (vecY v1)
+  moveTo (v1 ^._x) (v1 ^._y)
+  lineTo (v3 ^._x) (v3 ^._y)
+  lineTo (v4 ^._x) (v4 ^._y)
+  lineTo (v2 ^._x) (v2 ^._y)
+  lineTo (v1 ^._x) (v1 ^._y)
   fill
 
 systemDraw :: System -> Render ()
@@ -46,12 +45,12 @@ systemDraw s = do
 test :: [RigidBody]
 test =
   [ RigidBody
-      (vec3 0.7 0.6 0.5)
+      (V3 0.7 0.6 0.5)
       1.0
-      (vec3 300.0 300.0 0.0)
-      (vec3 100.0 0.0 0.0)
-      (qrotation (0.3 * pi) (vec3 0.0 0.0 1.0))
-      (vec3 0.0 0.0 1.0)
+      (V3 300.0 300.0 0.0)
+      (V3 100.0 0.0 0.0)
+      (L.axisAngle (V3 0.0 0.0 1.0) (0.5 * pi))
+      (V3 0.001 0.0 (-0.001))
   ]
 
 currentSeconds :: IO Double
@@ -62,9 +61,18 @@ currentSeconds = do
 advancePosition :: Double -> [RigidBody] -> [RigidBody]
 advancePosition d s =
   map (\x -> x
-    { bodyPosition = bodyPosition x ^+^ (d *^ bodyVelocity x)
-    , bodyDirection = bodyDirection x -- ^+^ (d *^ (bodyAngularVelocity x `cross3` bodyDirection x))
+    { bodyPosition = bodyPosition x + d *^ bodyVelocity x
+    , bodyDirection = L.normalize $ bodyDirection x + 0.5 *^ (q $ L.inv44 (mB $ bodyDirection x) !* (mD !* bodyAngularVelocity x))
     }) s
+  where
+    mD = V4 (V3 0.0 0.0 0.0) (V3 1.0 0.0 0.0) (V3 0.0 1.0 0.0) (V3 0.0 0.0 1.0)
+    mB (Quaternion v0 (V3 v1 v2 v3)) =
+      V4
+        (V4 v0 v1 v2 v3)
+        (V4 (-v1) v0 (-v3) v2)
+        (V4 (-v2) v3 v0 (-v1))
+        (V4 (-v3) (-v2) v1 v0)
+    q (V4 v0 v1 v2 v3) = Quaternion v0 (V3 v1 v2 v3)
 
 {-
 advanceVelosity :: Double -> [RigidBody] -> [RigidBody]
