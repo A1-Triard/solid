@@ -76,8 +76,8 @@ advancePosition d s =
         (V4 (-v3) (-v2) v1 v0)
     q (V4 v0 v1 v2 v3) = Quaternion v0 (V3 v1 v2 v3)
 
-advanceVelosity :: Double -> [RigidBody] -> [RigidBody]
-advanceVelosity d s =
+advanceVelocity :: Double -> [RigidBody] -> [RigidBody]
+advanceVelocity d s =
   map (\x -> x
     { bodyVelocity = bodyVelocity x + (d / bodyMass x) *^ force
     , bodyAngularVelocity = bodyAngularVelocity x + d *^ ((L.inv33 $ bodyTensorOfInertia x) !* (torque ^-^ (mW $ bodyAngularVelocity x) !* (bodyTensorOfInertia x !* bodyAngularVelocity x)))
@@ -92,7 +92,7 @@ advanceVelosity d s =
     torque = V3 0.0 0.0 3e-4
 
 advanceCore :: Double -> System -> System
-advanceCore d s = System (time s + d) (advanceVelosity d $ advancePosition d $ bodies s)
+advanceCore d s = System (time s + d) (advanceVelocity d $ advancePosition d $ bodies s)
 
 advance :: Double -> System -> System
 advance !t s =
@@ -129,6 +129,6 @@ solid = do
   set window [windowTitle := ("Solid" :: S.Text)]
   d <- builderGetObject b castToDrawingArea ("drawingarea" :: S.Text)
   t0 <- currentSeconds
-  queueFrame ((subtract t0) <$> currentSeconds) d $ System 0.0 test
+  queueFrame ((subtract t0) <$> currentSeconds) d $ System 0.0 $ advanceVelocity (dt / 2.0) test
   widgetShowAll window
   mainGUI
