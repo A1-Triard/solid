@@ -52,7 +52,7 @@ test =
       (V3 300.0 300.0 0.0)
       (V3 100.0 0.0 0.0)
       (L.axisAngle (V3 0.0 0.0 1.0) (0.5 * pi))
-      (V3 0.001 0.0 (-0.001))
+      (V3 1.0 0.0 (-1.0))
   ]
 
 currentSeconds :: IO Double
@@ -64,7 +64,7 @@ advancePosition :: Double -> [RigidBody] -> [RigidBody]
 advancePosition d s =
   map (\x -> x
     { bodyPosition = bodyPosition x + d *^ bodyVelocity x
-    , bodyDirection = L.normalize $ bodyDirection x + 0.5 *^ (q $ L.inv44 (mB $ bodyDirection x) !* (mD !* bodyAngularVelocity x))
+    , bodyDirection = bodyDirection x + (0.5 * d) *^ (q $ L.inv44 (mB $ bodyDirection x) !* (mD !* bodyAngularVelocity x))
     }) s
   where
     mD = V4 (V3 0.0 0.0 0.0) (V3 1.0 0.0 0.0) (V3 0.0 1.0 0.0) (V3 0.0 0.0 1.0)
@@ -89,7 +89,7 @@ advanceVelocity d s =
         (V3 z 0.0 (-x))
         (V3 (-y) x 0.0)
     force = V3 0.0 0.0 0.0
-    torque = V3 0.0 0.0 3e-4
+    torque = V3 0.0 0.0 0.3
 
 advanceCore :: Double -> System -> System
 advanceCore d s = System (time s + d) (advanceVelocity d $ advancePosition d $ bodies s)
