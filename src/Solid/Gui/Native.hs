@@ -6,7 +6,7 @@ import Paths_solid
 data RigidBody = RigidBody
   { bodyColor :: V3 Double
   , bodyMass :: Double
-  , bodyTensorOfInertia :: M33 Double
+  , bodySpTensorOfInertia :: M33 Double
   , bodyPosition :: V3 Double
   , bodyVelocity :: V3 Double
   , bodyDirection :: Quaternion Double
@@ -80,7 +80,7 @@ advanceVelocity :: Double -> [RigidBody] -> [RigidBody]
 advanceVelocity d s =
   map (\x -> x
     { bodyVelocity = bodyVelocity x + (d / bodyMass x) *^ force
-    , bodyAngularVelocity = bodyAngularVelocity x + d *^ ((L.inv33 $ bodyTensorOfInertia x) !* (torque ^-^ (mW $ bodyAngularVelocity x) !* (bodyTensorOfInertia x !* bodyAngularVelocity x)))
+    , bodyAngularVelocity = bodyAngularVelocity x + d *^ ((L.inv33 $ bodySpTensorOfInertia x) !* ((torque ^/ bodyMass x) ^-^ (mW $ bodyAngularVelocity x) !* (bodySpTensorOfInertia x !* bodyAngularVelocity x)))
     }) s
   where
     mW (V3 x y z) =
