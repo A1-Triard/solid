@@ -126,8 +126,9 @@ solid = do
   builderAddFromFile b ui
   window <- builderGetObject b castToWindow ("applicationwindow" :: S.Text)
   void $ on window deleteEvent $ tryEvent $ lift mainQuit
-  set window [windowTitle := ("Solid" :: S.Text)]
   d <- builderGetObject b castToDrawingArea ("drawingarea" :: S.Text)
+  quit <- builderGetObject b castToMenuItem ("quititem" :: S.Text)
+  void $ on quit menuItemActivated mainQuit
   t0 <- currentSeconds
   queueFrame ((subtract t0) <$> currentSeconds) d $ System 0.0 $ advanceVelocity (dt / 2.0) test
   widgetShowAll window
