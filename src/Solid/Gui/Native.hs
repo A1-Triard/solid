@@ -27,11 +27,11 @@ bodyDraw b = do
   let v4 = bodyPosition b + V3 (-(v ^._y)) (v ^._x) (v ^._z)
   setSourceRGB (bodyColor b ^._x) (bodyColor b ^._y) (bodyColor b ^._z)
   setLineWidth 1.0
-  moveTo (v1 ^._x) (v1 ^._y)
-  lineTo (v3 ^._x) (v3 ^._y)
-  lineTo (v4 ^._x) (v4 ^._y)
-  lineTo (v2 ^._x) (v2 ^._y)
-  lineTo (v1 ^._x) (v1 ^._y)
+  moveTo (v1 ^._x) (-(v1 ^._y))
+  lineTo (v3 ^._x) (-(v3 ^._y))
+  lineTo (v4 ^._x) (-(v4 ^._y))
+  lineTo (v2 ^._x) (-(v2 ^._y))
+  lineTo (v1 ^._x) (-(v1 ^._y))
   fill
 
 systemDraw :: System -> Render ()
@@ -49,7 +49,7 @@ test =
       (V3 0.7 0.6 0.5)
       1.0
       (V3 (V3 1.0 0.0 0.0) (V3 0.0 1.0 0.0) (V3 0.0 0.0 1.0))
-      (V3 300.0 300.0 0.0)
+      (V3 300.0 (-300.0) 0.0)
       (V3 100.0 0.0 0.0)
       (L.axisAngle (V3 0.0 0.0 1.0) (0.5 * pi))
       (V3 1.0 0.0 (-1.0))
