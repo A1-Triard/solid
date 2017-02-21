@@ -88,7 +88,7 @@ advanceVelocity d s =
         (V3 0.0 (-z) y)
         (V3 z 0.0 (-x))
         (V3 (-y) x 0.0)
-    force = V3 0.0 0.0 0.0
+    force = V3 0.0 (-10.0) 0.0
     torque = V3 0.0 0.0 0.3
 
 advanceCore :: Double -> System -> System
