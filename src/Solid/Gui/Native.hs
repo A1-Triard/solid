@@ -6,6 +6,7 @@ import Paths_solid
 data RigidBody = RigidBody
   { bodyColor :: V3 Double
   , bodyMass :: Double
+  , bodyTensorOfInertia :: M33 Double
   , bodyPosition :: V3 Double
   , bodyVelocity :: V3 Double
   , bodyDirection :: Quaternion Double
@@ -47,6 +48,7 @@ test =
   [ RigidBody
       (V3 0.7 0.6 0.5)
       1.0
+      (V3 (V3 1.0 0.0 0.0) (V3 0.0 1.0 0.0) (V3 0.0 0.0 1.0))
       (V3 300.0 300.0 0.0)
       (V3 100.0 0.0 0.0)
       (L.axisAngle (V3 0.0 0.0 1.0) (0.5 * pi))
@@ -74,18 +76,23 @@ advancePosition d s =
         (V4 (-v3) (-v2) v1 v0)
     q (V4 v0 v1 v2 v3) = Quaternion v0 (V3 v1 v2 v3)
 
-{-
 advanceVelosity :: Double -> [RigidBody] -> [RigidBody]
 advanceVelosity d s =
-  map (\x -> let a = 
-    x
-    { bodyVelocity = bodyVelocity x ^+^ Vec3 (100.0 * d) 0.0 0.0
-    --, bodyAngularVelocity = bodyDirection x ^+^ (d *^ (bodyAngularVelocity x `crossProduct` bodyDirection x))
+  map (\x -> x
+    { bodyVelocity = bodyVelocity x + (d / bodyMass x) *^ force
+    , bodyAngularVelocity = bodyAngularVelocity x + d *^ ((L.inv33 $ bodyTensorOfInertia x) !* (torque ^-^ (mW $ bodyAngularVelocity x) !* (bodyTensorOfInertia x !* bodyAngularVelocity x)))
     }) s
--}
+  where
+    mW (V3 x y z) =
+      V3
+        (V3 0.0 (-z) y)
+        (V3 z 0.0 (-x))
+        (V3 (-y) x 0.0)
+    force = V3 0.0 0.0 0.0
+    torque = V3 0.0 0.0 3e-4
 
 advanceCore :: Double -> System -> System
-advanceCore d s = System (time s + d) (advancePosition d $ bodies s)
+advanceCore d s = System (time s + d) (advanceVelosity d $ advancePosition d $ bodies s)
 
 advance :: Double -> System -> System
 advance !t s =
