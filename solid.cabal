@@ -18,6 +18,8 @@ library
   hs-source-dirs: src
   exposed-modules: Solid.Gui
                  , Solid.Gui.Native
+                 , Solid.Solver
+                 , Solid.Solver.Native
   other-modules: Paths_solid
   build-depends: base >= 4.7 && < 5
                , gtk3
