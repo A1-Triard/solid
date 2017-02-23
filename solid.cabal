@@ -121,6 +121,7 @@ test-suite solid-test
   type: exitcode-stdio-1.0
   hs-source-dirs: test
   main-is: Spec.hs
+  other-modules: Solid.Solver.Spec
   build-depends: base
                , solid
                , HUnit
