@@ -67,7 +67,7 @@ testBodies :: Vector RigidBody
 testBodies = V.fromList
   [ RigidBody
       (V3 0.7 0.6 0.5)
-      1.0
+      100.0
       (V3 (V3 10.0 0.0 0.0) (V3 0.0 10.0 0.0) (V3 0.0 0.0 10.0))
       (V3 300.0 (-300.0) 0.0)
       (V3 0.0 0.0 0.0)

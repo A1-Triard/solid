@@ -56,3 +56,9 @@ test1Result = V.fromList
 constantMotionTest :: Assertion
 constantMotionTest = do
   assert $ TestPair "" test1Result $ bodies $ advance 10.0 True $ start 0.0001 V.empty test1
+
+{-
+uniformlyAcceleratedRotationTest :: Assertion
+uniformlyAcceleratedRotationTest = do
+  start 0.0001 V.empty
+-}
