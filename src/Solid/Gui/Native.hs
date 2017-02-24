@@ -49,6 +49,7 @@ systemDraw s = do
   let ke = kineticEnergy $ bodies s
   let pe = potentialEnergy $ springs s
   let fe = ke + pe
+  let m = momentum $ bodies s
   forM_ (bodies s) bodyDraw
   forM_ (springs s) $ springDraw (bodies s)
   selectFontFace ("monospace" :: S.Text) FontSlantNormal FontWeightNormal
@@ -62,6 +63,8 @@ systemDraw s = do
   showText $ "Potential Energy = " ++ show (round pe :: Int)
   moveTo 10.0 80.0
   showText $ "Energy = " ++ show (round fe :: Int)
+  moveTo 10.0 100.0
+  showText $ "Momentum = " ++ show (round (m ^._x) :: Int) ++ " " ++ show (round (m ^._y) :: Int) ++ " " ++ show (round (m ^._z) :: Int)
 
 testBodies :: Vector RigidBody
 testBodies = V.fromList

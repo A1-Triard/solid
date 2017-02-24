@@ -5,6 +5,7 @@ module Solid.Solver
   , TorqueForce (..)
   , kineticEnergy
   , potentialEnergy
+  , momentum
   , startCore
   , start
   , advanceCore

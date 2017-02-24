@@ -55,6 +55,12 @@ kineticEnergy = V.foldl (\s -> (s +) . bodyKineticEnergy) 0.0
 potentialEnergy :: Vector Spring -> Double
 potentialEnergy = V.foldl (\s -> (s +) . springPotentialEnergy) 0.0
 
+bodyMomentum :: RigidBody -> V3 Double
+bodyMomentum b = bodyMass b *^ bodyVelocity b
+
+momentum :: Vector RigidBody -> V3 Double
+momentum = V.foldl (\s -> (s +) . bodyMomentum) (V3 0.0 0.0 0.0)
+
 updateSpring :: Vector RigidBody -> Spring -> Spring
 updateSpring b spring =
   let i1 = springBodyIndex1 spring in
