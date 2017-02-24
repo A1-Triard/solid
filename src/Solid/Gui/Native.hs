@@ -29,16 +29,33 @@ systemDraw s = do
   moveTo 10.0 20.0
   showText $ ("Time = " ++) $ show $ time s
 
-test :: [RigidBody]
-test =
+testBodies :: Vector RigidBody
+testBodies = V.fromList
   [ RigidBody
       (V3 0.7 0.6 0.5)
       1.0
-      (V3 (V3 1.0 0.0 0.0) (V3 0.0 1.0 0.0) (V3 0.0 0.0 1.0))
+      (V3 (V3 10.0 0.0 0.0) (V3 0.0 10.0 0.0) (V3 0.0 0.0 10.0))
       (V3 300.0 (-300.0) 0.0)
-      (V3 100.0 0.0 0.0)
+      (V3 0.0 0.0 0.0)
       (L.axisAngle (V3 0.0 0.0 1.0) (0.5 * pi))
-      (V3 1.0 0.0 (-1.0))
+      (V3 0.0 0.0 0.0)
+  , RigidBody
+      (V3 0.5 0.6 0.7)
+      1.0
+      (V3 (V3 1.0 0.0 0.0) (V3 0.0 1.0 0.0) (V3 0.0 0.0 1.0))
+      (V3 600.0 (-600.0) 0.0)
+      (V3 0.0 0.0 0.0)
+      (L.axisAngle (V3 0.0 0.0 1.0) (0.5 * pi))
+      (V3 0.0 0.0 0.0)
+  ]
+
+testSprings :: [Spring]
+testSprings =
+  [ Spring
+      0.2
+      0.0
+      0 (V3 50.0 0.0 0.0)
+      1 (V3 0.0 (-50.0) 0.0)
   ]
 
 currentSeconds :: IO Double
@@ -63,7 +80,7 @@ fps :: Double
 fps = 100.0
 
 dt :: Double
-dt = 0.001
+dt = 0.0001
 
 solid :: IO ()
 solid = do
@@ -77,6 +94,6 @@ solid = do
   quit <- builderGetObject b castToMenuItem ("quititem" :: S.Text)
   void $ on quit menuItemActivated mainQuit
   t0 <- currentSeconds
-  queueFrame ((subtract t0) <$> currentSeconds) d $ start dt test
+  queueFrame ((subtract t0) <$> currentSeconds) d $ start dt testSprings testBodies
   widgetShowAll window
   mainGUI

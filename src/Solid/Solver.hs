@@ -1,5 +1,6 @@
 module Solid.Solver
   ( RigidBody (..)
+  , Spring (..)
   , System (..)
   , start
   , advance
