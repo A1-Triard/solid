@@ -50,11 +50,11 @@ applySpring b forces spring =
       | i == i2 = TorqueForce (t - L.cross sf p2) (f - sf)
       | otherwise = TorqueForce t f
 
-advancePosition :: Double -> Vector RigidBody -> Vector RigidBody
-advancePosition d s =
+advancePosition :: Double -> Bool -> Vector RigidBody -> Vector RigidBody
+advancePosition d n s =
   V.map (\x -> x
     { bodyPosition = bodyPosition x + d *^ bodyVelocity x
-    , bodyDirection = bodyDirection x + (0.5 * d) *^ (q $ L.inv44 (mB $ bodyDirection x) !* (mD !* bodyAngularVelocity x))
+    , bodyDirection = (if n then L.normalize else id) $ bodyDirection x + (0.5 * d) *^ (q $ L.inv44 (mB $ bodyDirection x) !* (mD !* bodyAngularVelocity x))
     }) s
   where
     mD = V4 (V3 0.0 0.0 0.0) (V3 1.0 0.0 0.0) (V3 0.0 1.0 0.0) (V3 0.0 0.0 1.0)
@@ -79,17 +79,17 @@ advanceVelocity d s b =
         (V3 z 0.0 (-x))
         (V3 (-y) x 0.0)
 
-advanceCore :: System -> System
-advanceCore s =
+advanceCore :: Bool -> System -> System
+advanceCore n s =
   System (time s + timeDelta s) (timeDelta s) (springs s)
     $ advanceVelocity (timeDelta s) (springs s)
-    $ advancePosition (timeDelta s)
+    $ advancePosition (timeDelta s) n
     $ bodies s
 
-advance :: Double -> System -> System
-advance t s =
+advance :: Double -> Bool -> System -> System
+advance t n s =
   let steps = ceiling $ (t - time s) / (timeDelta s) in
-  fromMaybe s $ listToMaybe $ drop steps $ iterate advanceCore s
+  fromMaybe s $ listToMaybe $ drop steps $ iterate (advanceCore n) s
 
 start :: Double -> [Spring] -> Vector RigidBody -> System
 start dt s b = System 0.0 dt s $ advanceVelocity (dt / 2.0) s b

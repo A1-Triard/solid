@@ -63,17 +63,24 @@ currentSeconds = do
   t <- getTime Monotonic
   return $ fromIntegral (sec t) + fromIntegral (nsec t) * 1e-9
 
-queueFrame :: IO Double -> DrawingArea -> System -> IO ()
-queueFrame get_time d s = do
-  draw_id <- on d draw $ systemDraw s
-  void $ timeoutAdd (frame get_time d s draw_id) $ round (1000.0 / fps)
+data UI = UI
+  { timer :: IO Double
+  , canvas :: DrawingArea
+  , normalizeQ :: CheckMenuItem
+  }
 
-frame :: IO Double -> DrawingArea -> System -> ConnectId DrawingArea -> IO Bool
-frame get_time d s draw_id = do
-  t <- get_time
+queueFrame :: UI -> System -> IO ()
+queueFrame ui s = do
+  draw_id <- on (canvas ui) draw $ systemDraw s
+  void $ timeoutAdd (frame ui s draw_id) $ round (1000.0 / fps)
+
+frame :: UI -> System -> ConnectId DrawingArea -> IO Bool
+frame ui s draw_id = do
+  t <- timer ui
+  nq <- checkMenuItemGetActive $ normalizeQ ui
   signalDisconnect draw_id
-  queueFrame get_time d $ advance t s
-  widgetQueueDraw d
+  queueFrame ui $ advance t nq s
+  widgetQueueDraw $ canvas ui
   return False
 
 fps :: Double
@@ -86,14 +93,20 @@ solid :: IO ()
 solid = do
   void initGUI
   b <- builderNew
-  ui <- getDataFileName "ui.glade"
-  builderAddFromFile b ui
+  builderAddFromFile b =<< getDataFileName "ui.glade"
   window <- builderGetObject b castToWindow ("applicationwindow" :: S.Text)
   void $ on window deleteEvent $ tryEvent $ lift mainQuit
   d <- builderGetObject b castToDrawingArea ("drawingarea" :: S.Text)
   quit <- builderGetObject b castToMenuItem ("quititem" :: S.Text)
   void $ on quit menuItemActivated mainQuit
+  n <- builderGetObject b castToCheckMenuItem ("normalize" :: S.Text)
   t0 <- currentSeconds
-  queueFrame ((subtract t0) <$> currentSeconds) d $ start dt testSprings testBodies
+  let
+    ui = UI
+      { timer = (subtract t0) <$> currentSeconds
+      , canvas = d
+      , normalizeQ = n
+      }
+  queueFrame ui $ start dt testSprings testBodies
   widgetShowAll window
   mainGUI
