@@ -53,9 +53,9 @@ testSprings :: [Spring]
 testSprings =
   [ Spring
       0.2
-      0.0
-      0 (V3 50.0 0.0 0.0)
-      1 (V3 0.0 (-50.0) 0.0)
+      5.0
+      0 (V3 50.0 0.0 10.0)
+      1 (V3 0.0 (-50.0) (-10.0))
   ]
 
 currentSeconds :: IO Double
