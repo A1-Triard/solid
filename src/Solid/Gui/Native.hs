@@ -79,7 +79,7 @@ testBodies = V.fromList
       (V3 (V3 1.0 0.0 0.0) (V3 0.0 1.0 0.0) (V3 0.0 0.0 1e3))
       (V3 600.0 (-600.0) 0.0)
       (V3 0.0 0.0 0.0)
-      (L.axisAngle (V3 0.0 0.0 1.0) (0.5 * pi))
+      (L.axisAngle (V3 0.0 0.0 1.0) pi)
       (V3 0.0 0.0 0.0)
   ]
 
@@ -93,6 +93,8 @@ testSprings = V.fromList
       5.0
       0 (V3 0.0 0.0 0.0)
       1 (V3 50.0 50.0 0.0)
+      (V3 nan nan nan)
+      (V3 nan nan nan)
       nan
       (V3 nan nan nan)
   ]

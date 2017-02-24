@@ -19,6 +19,8 @@ data Spring = Spring
   , springBodyPoint1 :: V3 Double
   , springBodyIndex2 :: Int
   , springBodyPoint2 :: V3 Double
+  , springPoint1 :: V3 Double
+  , springPoint2 :: V3 Double
   , springDelta :: Double
   , springDirection :: V3 Double
   }
@@ -62,7 +64,7 @@ updateSpring b spring =
   let p1 = L.rotate (bodyDirection b1) $ springBodyPoint1 spring in
   let p2 = L.rotate (bodyDirection b2) $ springBodyPoint2 spring in
   let d = (bodyPosition b2 + p2) - (bodyPosition b1 + p1) in
-  spring { springDelta = L.norm d - springBLength spring, springDirection = L.signorm d }
+  spring { springPoint1 = p1, springPoint2 = p2, springDelta = L.norm d - springBLength spring, springDirection = L.signorm d }
 
 applySpring :: Vector TorqueForce -> Spring -> Vector TorqueForce
 applySpring forces spring =
@@ -73,9 +75,12 @@ applySpring forces spring =
   V.imap (update sf i1 i2) forces
   where
     update sf i1 i2 i (TorqueForce t f)
-      | i == i1 = TorqueForce (t + L.cross sf (springBodyPoint1 spring)) (f + sf)
-      | i == i2 = TorqueForce (t - L.cross sf (springBodyPoint2 spring)) (f - sf)
+      | i == i1 = TorqueForce (t - L.cross sf (springPoint1 spring)) (f + sf)
+      | i == i2 = TorqueForce (t + L.cross sf (springPoint2 spring)) (f - sf)
       | otherwise = TorqueForce t f
+
+springForces :: Int -> Vector Spring -> Vector TorqueForce
+springForces m = V.foldl applySpring (V.replicate m (TorqueForce 0.0 0.0))
 
 advancePosition :: Double -> Bool -> Vector RigidBody -> Vector RigidBody
 advancePosition d n s =
@@ -121,9 +126,6 @@ advanceCore t n forces s =
 
 advance :: Double -> Bool -> System -> System
 advance t n = advanceCore t n springForces
-
-springForces :: Int -> Vector Spring -> Vector TorqueForce
-springForces m = V.foldl applySpring (V.replicate m (TorqueForce 0.0 0.0))
 
 startCore :: Double -> (Int -> Vector Spring -> Vector TorqueForce) -> Vector Spring -> Vector RigidBody -> System
 startCore dt forces s b =
