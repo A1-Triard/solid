@@ -61,6 +61,16 @@ bodyMomentum b = bodyMass b *^ bodyVelocity b
 momentum :: Vector RigidBody -> V3 Double
 momentum = V.foldl (\s -> (s +) . bodyMomentum) (V3 0.0 0.0 0.0)
 
+bodyAngularMomentum :: RigidBody -> V3 Double
+bodyAngularMomentum b =
+  bodyMass b *^
+  ( L.cross (bodyPosition b) (bodyVelocity b)
+  + bodySpTensorOfInertia b !* bodyAngularVelocity b
+  )
+
+angularMomentum :: Vector RigidBody -> V3 Double
+angularMomentum = V.foldl (\s -> (s +) . bodyAngularMomentum) (V3 0.0 0.0 0.0)
+
 updateSpring :: Vector RigidBody -> Spring -> Spring
 updateSpring b spring =
   let i1 = springBodyIndex1 spring in

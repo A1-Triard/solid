@@ -6,6 +6,7 @@ module Solid.Solver
   , kineticEnergy
   , potentialEnergy
   , momentum
+  , angularMomentum
   , startCore
   , start
   , advanceCore
