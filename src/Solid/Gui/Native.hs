@@ -90,7 +90,7 @@ testSprings :: Vector Spring
 testSprings = V.fromList
   [ Spring
       0.2
-      5.0
+      25.0
       0 (V3 50.0 (-50.0) 0.0)
       1 (V3 50.0 50.0 0.0)
       (V3 nan nan nan)
