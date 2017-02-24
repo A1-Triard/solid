@@ -33,6 +33,22 @@ data TorqueForce = TorqueForce
   , force :: V3 Double
   }
 
+bodyKineticEnergy :: RigidBody -> Double
+bodyKineticEnergy b =
+  0.5 * bodyMass b *
+    ( L.quadrance (bodyVelocity b)
+    + (bodySpTensorOfInertia b !* bodyAngularVelocity b) `L.dot` bodyAngularVelocity b
+    )
+
+{-
+springPotentialEnergy :: Spring -> Double
+springPotentialEnergy s =
+  0.5
+-}
+
+kineticEnergy :: Vector RigidBody -> Double
+kineticEnergy b = V.foldl (\s -> (s +) . bodyKineticEnergy) 0.0 b
+
 applySpring :: Vector RigidBody -> Vector TorqueForce -> Spring -> Vector TorqueForce
 applySpring b forces spring =
   let i1 = springBody1 spring in

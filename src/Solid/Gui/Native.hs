@@ -27,7 +27,9 @@ systemDraw s = do
   setFontSize 14
   setSourceRGB 0.9 0.9 0.9
   moveTo 10.0 20.0
-  showText $ ("Time = " ++) $ show $ time s
+  showText $ "Time = " ++ (show $ time s)
+  moveTo 10.0 40.0
+  showText $ "Kinetic Energy = " ++ (show $ kineticEnergy $ bodies s)
 
 testBodies :: Vector RigidBody
 testBodies = V.fromList
