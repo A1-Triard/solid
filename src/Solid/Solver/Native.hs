@@ -14,17 +14,19 @@ data RigidBody = RigidBody
 
 data Spring = Spring
   { springStiffness :: Double
-  , springLength :: Double
-  , springBody1 :: Int
-  , springPoint1 :: V3 Double
-  , springBody2 :: Int
-  , springPoint2 :: V3 Double
+  , springBLength :: Double
+  , springBodyIndex1 :: Int
+  , springBodyPoint1 :: V3 Double
+  , springBodyIndex2 :: Int
+  , springBodyPoint2 :: V3 Double
+  , springDelta :: Double
+  , springDirection :: V3 Double
   }
 
 data System = System
   { time :: !Double
   , timeDelta :: !Double
-  , springs :: [Spring]
+  , springs :: Vector Spring
   , bodies :: Vector RigidBody
   }
 
@@ -40,30 +42,39 @@ bodyKineticEnergy b =
     + (bodySpTensorOfInertia b !* bodyAngularVelocity b) `L.dot` bodyAngularVelocity b
     )
 
-{-
 springPotentialEnergy :: Spring -> Double
 springPotentialEnergy s =
-  0.5
--}
+  let d = springDelta s in
+  if d <= 0.0 then 0.0 else 0.5 * springStiffness s * d * d
 
 kineticEnergy :: Vector RigidBody -> Double
-kineticEnergy b = V.foldl (\s -> (s +) . bodyKineticEnergy) 0.0 b
+kineticEnergy = V.foldl (\s -> (s +) . bodyKineticEnergy) 0.0
 
-applySpring :: Vector RigidBody -> Vector TorqueForce -> Spring -> Vector TorqueForce
-applySpring b forces spring =
-  let i1 = springBody1 spring in
-  let i2 = springBody2 spring in
+potentialEnergy :: Vector Spring -> Double
+potentialEnergy = V.foldl (\s -> (s +) . springPotentialEnergy) 0.0
+
+updateSpring :: Vector RigidBody -> Spring -> Spring
+updateSpring b spring =
+  let i1 = springBodyIndex1 spring in
+  let i2 = springBodyIndex2 spring in
   let b1 = fromMaybe (error "") $ b !? i1 in
   let b2 = fromMaybe (error "") $ b !? i2 in
-  let p1 = L.rotate (bodyDirection b1) $ springPoint1 spring in
-  let p2 = L.rotate (bodyDirection b2) $ springPoint2 spring in
-  let dv = (bodyPosition b2 + p2) - (bodyPosition b1 + p1) in
-  let sf = springStiffness spring *^ (dv - springLength spring *^ L.signorm dv) in
-  V.imap (update sf i1 i2 p1 p2) forces
+  let p1 = L.rotate (bodyDirection b1) $ springBodyPoint1 spring in
+  let p2 = L.rotate (bodyDirection b2) $ springBodyPoint2 spring in
+  let d = (bodyPosition b2 + p2) - (bodyPosition b1 + p1) in
+  spring { springDelta = L.norm d - springBLength spring, springDirection = L.signorm d }
+
+applySpring :: Vector TorqueForce -> Spring -> Vector TorqueForce
+applySpring forces spring =
+  let i1 = springBodyIndex1 spring in
+  let i2 = springBodyIndex2 spring in
+  let d = springDelta spring in
+  let sf = if d <= 0.0 then 0.0 else (springStiffness spring * d) *^ springDirection spring in
+  V.imap (update sf i1 i2) forces
   where
-    update sf i1 i2 p1 p2 i (TorqueForce t f)
-      | i == i1 = TorqueForce (t + L.cross sf p1) (f + sf)
-      | i == i2 = TorqueForce (t - L.cross sf p2) (f - sf)
+    update sf i1 i2 i (TorqueForce t f)
+      | i == i1 = TorqueForce (t + L.cross sf (springBodyPoint1 spring)) (f + sf)
+      | i == i2 = TorqueForce (t - L.cross sf (springBodyPoint2 spring)) (f - sf)
       | otherwise = TorqueForce t f
 
 advancePosition :: Double -> Bool -> Vector RigidBody -> Vector RigidBody
@@ -82,12 +93,12 @@ advancePosition d n s =
         (V4 (-v3) (-v2) v1 v0)
     q (V4 v0 v1 v2 v3) = Quaternion v0 (V3 v1 v2 v3)
 
-advanceVelocity :: Double -> [Spring] -> Vector RigidBody -> Vector RigidBody
+advanceVelocity :: Double -> Vector Spring -> Vector RigidBody -> Vector RigidBody
 advanceVelocity d s b =
   V.zipWith (\x (TorqueForce t f) -> x
     { bodyVelocity = bodyVelocity x + (d / bodyMass x) *^ f
     , bodyAngularVelocity = bodyAngularVelocity x + d *^ ((L.inv33 $ bodySpTensorOfInertia x) !* ((t ^/ bodyMass x) ^-^ (mW $ bodyAngularVelocity x) !* (bodySpTensorOfInertia x !* bodyAngularVelocity x)))
-    }) b $ foldl (applySpring b) (V.replicate (V.length b) (TorqueForce 0.0 0.0)) s
+    }) b $ V.foldl applySpring (V.replicate (V.length b) (TorqueForce 0.0 0.0)) s
   where
     mW (V3 x y z) =
       V3
@@ -97,15 +108,18 @@ advanceVelocity d s b =
 
 advanceCore :: Bool -> System -> System
 advanceCore n s =
-  System (time s + timeDelta s) (timeDelta s) (springs s)
-    $ advanceVelocity (timeDelta s) (springs s)
-    $ advancePosition (timeDelta s) n
-    $ bodies s
+  let b1 = advancePosition (timeDelta s) n $ bodies s in
+  let s1 = V.map (updateSpring b1) $ springs s in
+  let b2 = advanceVelocity (timeDelta s) s1 b1 in
+  System (time s + timeDelta s) (timeDelta s) s1 b2
 
 advance :: Double -> Bool -> System -> System
 advance t n s =
   let steps = ceiling $ (t - time s) / (timeDelta s) in
   fromMaybe s $ listToMaybe $ drop steps $ iterate (advanceCore n) s
 
-start :: Double -> [Spring] -> Vector RigidBody -> System
-start dt s b = System 0.0 dt s $ advanceVelocity (dt / 2.0) s b
+start :: Double -> Vector Spring -> Vector RigidBody -> System
+start dt s b =
+  let s1 = V.map (updateSpring b) s in
+  let b1 = advanceVelocity (dt / 2.0) s1 b in
+  System 0.0 dt s1 b1

@@ -22,14 +22,21 @@ bodyDraw b = do
 
 systemDraw :: System -> Render ()
 systemDraw s = do
+  let ke = kineticEnergy $ bodies s
+  let pe = potentialEnergy $ springs s
+  let fe = ke + pe
   forM_ (bodies s) bodyDraw
   selectFontFace ("monospace" :: S.Text) FontSlantNormal FontWeightNormal
   setFontSize 14
   setSourceRGB 0.9 0.9 0.9
   moveTo 10.0 20.0
-  showText $ "Time = " ++ (show $ time s)
+  showText $ "Time = " ++ show (round $ time s :: Int)
   moveTo 10.0 40.0
-  showText $ "Kinetic Energy = " ++ (show $ kineticEnergy $ bodies s)
+  showText $ "Kinetic Energy = " ++ show (round ke :: Int)
+  moveTo 10.0 60.0
+  showText $ "Potential Energy = " ++ show (round pe :: Int)
+  moveTo 10.0 80.0
+  showText $ "Energy = " ++ show (round fe :: Int)
 
 testBodies :: Vector RigidBody
 testBodies = V.fromList
@@ -51,13 +58,18 @@ testBodies = V.fromList
       (V3 0.0 0.0 0.0)
   ]
 
-testSprings :: [Spring]
-testSprings =
+nan :: Double
+nan = 0.0 / 0.0
+
+testSprings :: Vector Spring
+testSprings = V.fromList
   [ Spring
       0.2
       5.0
       0 (V3 50.0 0.0 10.0)
       1 (V3 0.0 (-50.0) (-10.0))
+      nan
+      (V3 nan nan nan)
   ]
 
 currentSeconds :: IO Double

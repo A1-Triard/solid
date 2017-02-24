@@ -3,6 +3,7 @@ module Solid.Solver
   , Spring (..)
   , System (..)
   , kineticEnergy
+  , potentialEnergy
   , start
   , advance
   ) where
