@@ -93,12 +93,12 @@ advancePosition d n s =
         (V4 (-v3) (-v2) v1 v0)
     q (V4 v0 v1 v2 v3) = Quaternion v0 (V3 v1 v2 v3)
 
-advanceVelocity :: Double -> Vector Spring -> Vector RigidBody -> Vector RigidBody
-advanceVelocity d s b =
+advanceVelocity :: Double -> Vector TorqueForce -> Vector RigidBody -> Vector RigidBody
+advanceVelocity d fs b =
   V.zipWith (\x (TorqueForce t f) -> x
     { bodyVelocity = bodyVelocity x + (d / bodyMass x) *^ f
     , bodyAngularVelocity = bodyAngularVelocity x + d *^ ((L.inv33 $ bodySpTensorOfInertia x) !* ((t ^/ bodyMass x) ^-^ (mW $ bodyAngularVelocity x) !* (bodySpTensorOfInertia x !* bodyAngularVelocity x)))
-    }) b $ V.foldl applySpring (V.replicate (V.length b) (TorqueForce 0.0 0.0)) s
+    }) b fs
   where
     mW (V3 x y z) =
       V3
@@ -106,20 +106,30 @@ advanceVelocity d s b =
         (V3 z 0.0 (-x))
         (V3 (-y) x 0.0)
 
-advanceCore :: Bool -> System -> System
-advanceCore n s =
+advanceStep :: Bool -> (Int -> Vector Spring -> Vector TorqueForce) -> System -> System
+advanceStep n forces s =
   let b1 = advancePosition (timeDelta s) n $ bodies s in
   let s1 = V.map (updateSpring b1) $ springs s in
-  let b2 = advanceVelocity (timeDelta s) s1 b1 in
+  let f = forces (V.length b1) s1 in
+  let b2 = advanceVelocity (timeDelta s) f b1 in
   System (time s + timeDelta s) (timeDelta s) s1 b2
 
-advance :: Double -> Bool -> System -> System
-advance t n s =
+advanceCore :: Double -> Bool -> (Int -> Vector Spring -> Vector TorqueForce) -> System -> System
+advanceCore t n forces s =
   let steps = ceiling $ (t - time s) / (timeDelta s) in
-  fromMaybe s $ listToMaybe $ drop steps $ iterate (advanceCore n) s
+  fromMaybe s $ listToMaybe $ drop steps $ iterate (advanceStep n forces) s
+
+advance :: Double -> Bool -> System -> System
+advance t n = advanceCore t n springForces
+
+springForces :: Int -> Vector Spring -> Vector TorqueForce
+springForces m = V.foldl applySpring (V.replicate m (TorqueForce 0.0 0.0))
+
+startCore :: Double -> (Int -> Vector Spring -> Vector TorqueForce) -> Vector Spring -> Vector RigidBody -> System
+startCore dt forces s b =
+  let s1 = V.map (updateSpring b) s in
+  let b1 = advanceVelocity (dt / 2.0) (forces (V.length b) s1) b in
+  System 0.0 dt s1 b1
 
 start :: Double -> Vector Spring -> Vector RigidBody -> System
-start dt s b =
-  let s1 = V.map (updateSpring b) s in
-  let b1 = advanceVelocity (dt / 2.0) s1 b in
-  System 0.0 dt s1 b1
+start dt = startCore dt springForces

@@ -9,6 +9,7 @@ import Solid.Solver
 tests :: Test
 tests = TestList
   [ TestCase constantMotionTest
+  , TestCase uniformlyAcceleratedRotationTest
   ]
 
 data TestPair a = TestPair String a a
@@ -41,8 +42,8 @@ test1 = V.fromList
       (V3 0.0 0.0 pi)
   ]
 
-test1Result :: Vector RigidBody
-test1Result = V.fromList
+test2 :: Vector RigidBody
+test2 = V.fromList
   [ RigidBody
       (V3 0.7 0.6 0.5)
       1.0
@@ -53,12 +54,35 @@ test1Result = V.fromList
       (V3 0.0 0.0 pi)
   ]
 
+test3 :: Vector RigidBody
+test3 = V.fromList
+  [ RigidBody
+      (V3 0.7 0.6 0.5)
+      1.0
+      (V3 (V3 1.0 0.0 0.0) (V3 0.0 1.0 0.0) (V3 0.0 0.0 1.0))
+      (V3 300.0 (-300.0) 0.0)
+      (V3 0.0 0.0 0.0)
+      (L.axisAngle (V3 0.0 0.0 1.0) (0.5 * pi))
+      (V3 0.0 0.0 0.0)
+  ]
+
+test4 :: Vector RigidBody
+test4 = V.fromList
+  [ RigidBody
+      (V3 0.7 0.6 0.5)
+      1.0
+      (V3 (V3 1.0 0.0 0.0) (V3 0.0 1.0 0.0) (V3 0.0 0.0 1.0))
+      (V3 300.0 (-300.0) 0.0)
+      (V3 0.0 0.0 0.0)
+      (L.axisAngle (V3 0.0 0.0 1.0) pi)
+      (V3 0.0 0.0 (pi / 10.0))
+  ]
+
 constantMotionTest :: Assertion
 constantMotionTest = do
-  assert $ TestPair "" test1Result $ bodies $ advance 10.0 True $ start 0.0001 V.empty test1
+  assert $ TestPair "" test2 $ bodies $ advance 10.0 True $ start 0.0001 V.empty test1
 
-{-
 uniformlyAcceleratedRotationTest :: Assertion
 uniformlyAcceleratedRotationTest = do
-  start 0.0001 V.empty
--}
+  let forces = \_ _ -> V.fromList [TorqueForce (V3 0.0 0.0 (pi / 100.0)) (V3 0.0 0.0 0.0)]
+  assert $ TestPair "" test4 $ bodies $ advanceCore 10.0 True forces $ startCore 0.0001 forces V.empty test3
