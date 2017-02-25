@@ -3,38 +3,40 @@ module Solid.Solver.Native where
 #include <haskell>
 
 data RigidBody = RigidBody
-  { bodyColor :: V3 Double
-  , bodyMass :: Double
-  , bodySpTensorOfInertia :: M33 Double
-  , bodyPosition :: V3 Double
-  , bodyVelocity :: V3 Double
-  , bodyDirection :: Quaternion Double
-  , bodyAngularVelocity :: V3 Double
+  { bodyColor :: !(V3 Double)
+  , bodyMass :: !Double
+  , bodySpTensorOfInertia :: !(M33 Double)
+  , bodyPosition :: !(V3 Double)
+  , bodyVelocity :: !(V3 Double)
+  , bodyDirection :: !(Quaternion Double)
+  , bodyAngularVelocity :: !(V3 Double)
   }
 
 data Spring = Spring
-  { springStiffness :: Double
-  , springBLength :: Double
-  , springBodyIndex1 :: Int
-  , springBodyPoint1 :: V3 Double
-  , springBodyIndex2 :: Int
-  , springBodyPoint2 :: V3 Double
-  , springPoint1 :: V3 Double
-  , springPoint2 :: V3 Double
-  , springDelta :: Double
-  , springDirection :: V3 Double
+  { springStiffness :: !Double
+  , springBLength :: !Double
+  , springBodyIndex1 :: !Int
+  , springBodyPoint1 :: !(V3 Double)
+  , springBodyIndex2 :: !Int
+  , springBodyPoint2 :: !(V3 Double)
+  , springPoint1 :: !(V3 Double)
+  , springPoint2 :: !(V3 Double)
+  , springDelta :: !(Double)
+  , springDirection :: !(V3 Double)
   }
 
 data System = System
   { time :: !Double
   , timeDelta :: !Double
-  , springs :: Vector Spring
-  , bodies :: Vector RigidBody
+  , springs :: !(Vector Spring)
+  , bodies :: !(Vector RigidBody)
+  , kineticEnergy :: Double
+  , potentialEnergy :: Double
   }
 
 data TorqueForce = TorqueForce
-  { torque :: V3 Double
-  , force :: V3 Double
+  { torque :: !(V3 Double)
+  , force :: !(V3 Double)
   }
 
 bodyKineticEnergy :: RigidBody -> Double
@@ -49,11 +51,11 @@ springPotentialEnergy s =
   let d = springDelta s in
   if d <= 0.0 then 0.0 else 0.5 * springStiffness s * d * d
 
-kineticEnergy :: Vector RigidBody -> Double
-kineticEnergy = V.foldl (\s -> (s +) . bodyKineticEnergy) 0.0
+calcKineticEnergy :: Vector RigidBody -> Double
+calcKineticEnergy = V.foldl (\s -> (s +) . bodyKineticEnergy) 0.0
 
-potentialEnergy :: Vector Spring -> Double
-potentialEnergy = V.foldl (\s -> (s +) . springPotentialEnergy) 0.0
+calcPotentialEnergy :: Vector Spring -> Double
+calcPotentialEnergy = V.foldl (\s -> (s +) . springPotentialEnergy) 0.0
 
 bodyMomentum :: RigidBody -> V3 Double
 bodyMomentum b = bodyMass b *^ bodyVelocity b
@@ -133,12 +135,13 @@ advanceStep n forces s =
   let s1 = V.map (updateSpring b1) $ springs s in
   let f = forces (V.length b1) s1 in
   let b2 = advanceVelocity (timeDelta s) f b1 in
-  System (time s + timeDelta s) (timeDelta s) s1 b2
+  System (time s + timeDelta s) (timeDelta s) s1 b2 (calcKineticEnergy b2) (calcPotentialEnergy s1)
 
 advanceCore :: Double -> Bool -> (Int -> Vector Spring -> Vector TorqueForce) -> System -> System
 advanceCore t n forces s =
   let steps = ceiling $ (t - time s) / (timeDelta s) in
-  fromMaybe s $ listToMaybe $ drop steps $ iterate (advanceStep n forces) s
+  let s1 = fromMaybe s $ listToMaybe $ drop steps $ iterate (advanceStep n forces) s in
+  s1 { kineticEnergy = calcKineticEnergy (bodies s1), potentialEnergy = calcPotentialEnergy (springs s1) }
 
 advance :: Double -> Bool -> System -> System
 advance t n = advanceCore t n springForces
@@ -147,7 +150,7 @@ startCore :: Double -> (Int -> Vector Spring -> Vector TorqueForce) -> Vector Sp
 startCore dt forces s b =
   let s1 = V.map (updateSpring b) s in
   let b1 = advanceVelocity (dt / 2.0) (forces (V.length b) s1) b in
-  System 0.0 dt s1 b1
+  System 0.0 dt s1 b1 (calcKineticEnergy b1) (calcPotentialEnergy s1)
 
 start :: Double -> Vector Spring -> Vector RigidBody -> System
 start dt = startCore dt springForces

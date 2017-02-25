@@ -3,8 +3,6 @@ module Solid.Solver
   , Spring (..)
   , System (..)
   , TorqueForce (..)
-  , kineticEnergy
-  , potentialEnergy
   , momentum
   , angularMomentum
   , startCore

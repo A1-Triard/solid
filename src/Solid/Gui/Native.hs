@@ -4,8 +4,8 @@ module Solid.Gui.Native where
 import Solid.Solver
 import Paths_solid
 
-bodyDraw :: RigidBody -> Render ()
-bodyDraw b = do
+drawBody :: RigidBody -> Render ()
+drawBody b = do
   let v = L.rotate (bodyDirection b) (V3 20.0 0.0 0.0)
   let v1 = bodyPosition b + v
   let v2 = bodyPosition b + V3 (v ^._y) (-(v ^._x)) (v ^._z)
@@ -20,8 +20,8 @@ bodyDraw b = do
   lineTo (v1 ^._x) (-(v1 ^._y))
   fill
 
-springDraw :: Vector RigidBody -> Spring -> Render ()
-springDraw b spring = do
+drawSpring :: Vector RigidBody -> Spring -> Render ()
+drawSpring b spring = do
   let i1 = springBodyIndex1 spring
   let i2 = springBodyIndex2 spring
   let b1 = fromMaybe (error "") $ b !? i1
@@ -44,30 +44,17 @@ springDraw b spring = do
   lineTo (p2 ^._x) (-(p2 ^._y))
   stroke
 
-systemDraw :: System -> Render ()
-systemDraw s = do
-  let ke = kineticEnergy $ bodies s
-  let pe = potentialEnergy $ springs s
-  let fe = ke + pe
-  let m = momentum $ bodies s
-  let a = angularMomentum $ bodies s
-  forM_ (bodies s) bodyDraw
-  forM_ (springs s) $ springDraw (bodies s)
+drawSystem :: System -> Render ()
+drawSystem s = do
+  forM_ (bodies s) drawBody
+  forM_ (springs s) $ drawSpring (bodies s)
   selectFontFace ("monospace" :: S.Text) FontSlantNormal FontWeightNormal
   setFontSize 14
   setSourceRGB 0.9 0.9 0.9
   moveTo 10.0 20.0
   showText $ "Time = " ++ show (round $ time s :: Int)
   moveTo 10.0 40.0
-  showText $ "Kinetic Energy = " ++ show (round ke :: Int)
-  moveTo 10.0 60.0
-  showText $ "Potential Energy = " ++ show (round pe :: Int)
-  moveTo 10.0 80.0
-  showText $ "Energy = " ++ show (round fe :: Int)
-  moveTo 10.0 100.0
-  showText $ "Momentum = " ++ show (round (m ^._x) :: Int) ++ " " ++ show (round (m ^._y) :: Int) ++ " " ++ show (round (m ^._z) :: Int)
-  moveTo 10.0 120.0
-  showText $ "Angular Momentum = " ++ show (round (a ^._x) :: Int) ++ " " ++ show (round (a ^._y) :: Int) ++ " " ++ show (round (a ^._z) :: Int)
+  showText $ "Energy = " ++ show (round (kineticEnergy s + potentialEnergy s) :: Int)
 
 testBodies :: Vector RigidBody
 testBodies = V.fromList
@@ -111,14 +98,27 @@ currentSeconds = do
   return $ fromIntegral (sec t) + fromIntegral (nsec t) * 1e-9
 
 data UI = UI
-  { timer :: IO Double
-  , canvas :: DrawingArea
-  , normalizeQ :: CheckMenuItem
+  { timer :: !(IO Double)
+  , canvas :: !DrawingArea
+  , normalizeQ :: !CheckMenuItem
+  , keDiagram :: !Diagram
+  , peDiagram :: !Diagram
   }
 
 queueFrame :: UI -> System -> IO ()
 queueFrame ui s = do
-  draw_id <- on (canvas ui) draw $ systemDraw s
+  draw_id <- on (canvas ui) draw $ do
+    drawSystem s
+    setLineWidth 1.0
+    setSourceRGB 0.8 0.8 0.8
+    moveTo 20.0 620.0
+    lineTo 1040.0 620.0
+    stroke
+    moveTo 30.0 630.0
+    lineTo 30.0 430.0
+    stroke
+    drawDiagram (V2 25.0 620.0) (V3 0.3 0.6 0.6) (keDiagram ui)
+    drawDiagram (V2 25.0 620.0) (V3 0.6 0.6 0.3) (peDiagram ui)
   void $ timeoutAdd (frame ui s draw_id) $ round (1000.0 / fps)
 
 frame :: UI -> System -> ConnectId DrawingArea -> IO Bool
@@ -126,12 +126,50 @@ frame ui s draw_id = do
   t <- timer ui
   nq <- checkMenuItemGetActive $ normalizeQ ui
   signalDisconnect draw_id
-  queueFrame ui $ advance t nq s
-  widgetQueueDraw $ canvas ui
+  let s1 = advance t nq s
+  let i = floor (5.0 * t)
+  let ui1 = ui { keDiagram = addPoint i (kineticEnergy s / 100.0) (keDiagram ui), peDiagram = addPoint i (potentialEnergy s / 100.0) (peDiagram ui) }
+  queueFrame ui1 s1
+  widgetQueueDraw $ canvas ui1
   return False
 
+data Diagram = Diagram !Int !(Vector (Maybe Double))
+
+addPoint :: Int -> Double -> Diagram -> Diagram
+addPoint m v (Diagram ni d) =
+  go (m `mod` V.length d)
+  where
+    go i
+      | i == ni = Diagram ni d
+      | i > ni = Diagram i $ d // [(x, Just v) | x <- [(ni + 1) .. i]]
+      | otherwise = Diagram i $ d // [(x, Just v) | x <- [(ni + 1) .. (V.length d - 1)]] // [(x, Just v) | x <- [0 .. i]]
+
+drawDiagram :: V2 Double -> V3 Double -> Diagram -> Render ()
+drawDiagram (V2 x0 y0) (V3 cr cg cb) (Diagram ni d) = do
+  setLineWidth 1.0
+  setSourceRGB cr cg cb
+  evalStateT go (x0, 0, True)
+  stroke
+  where
+    go :: StateT (Double, Int, Bool) Render ()
+    go = V.forM_ d $ \my -> do
+      (x, i, s) <- get
+      case my of
+        Nothing -> put (x + 5.0, i + 1, s)
+        Just y -> do
+          if s
+            then lift $ moveTo x (y0 - y)
+            else return ()
+          if i == ni + 1
+            then do
+              lift stroke
+              put (x + 5.0, i + 1, True)
+            else do
+              lift $ lineTo x (y0 - y)
+              put (x + 5.0, i + 1, False)
+
 fps :: Double
-fps = 100.0
+fps = 50.0
 
 dt :: Double
 dt = 0.0001
@@ -153,6 +191,8 @@ solid = do
       { timer = (subtract t0) <$> currentSeconds
       , canvas = d
       , normalizeQ = n
+      , keDiagram = Diagram 0 (V.replicate 200 Nothing)
+      , peDiagram = Diagram 0 (V.replicate 200 Nothing)
       }
   queueFrame ui $ start dt testSprings testBodies
   widgetShowAll window

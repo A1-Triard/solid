@@ -30,6 +30,8 @@ library
                , linear
                , lens
                , vector
+               , containers
+               , mtl
   default-extensions: CPP
                     , TemplateHaskell
                     , ViewPatterns
@@ -134,6 +136,8 @@ test-suite solid-test
                , linear
                , lens
                , vector
+               , containers
+               , mtl
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   default-extensions: CPP
                     , TemplateHaskell
