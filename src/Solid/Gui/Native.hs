@@ -4,8 +4,8 @@ module Solid.Gui.Native where
 import Solid.Solver
 import Paths_solid
 
-drawBody :: RigidBody -> Render ()
-drawBody b = do
+drawBody :: V2 Double -> RigidBody -> Render ()
+drawBody c b = do
   let v = L.rotate (bodyDirection b) (V3 20.0 0.0 0.0)
   let v1 = bodyPosition b + v
   let v2 = bodyPosition b + V3 (v ^._y) (-(v ^._x)) (v ^._z)
@@ -13,15 +13,15 @@ drawBody b = do
   let v4 = bodyPosition b + V3 (-(v ^._y)) (v ^._x) (v ^._z)
   setSourceRGB (bodyColor b ^._x) (bodyColor b ^._y) (bodyColor b ^._z)
   setLineWidth 1.0
-  moveTo (v1 ^._x) (-(v1 ^._y))
-  lineTo (v3 ^._x) (-(v3 ^._y))
-  lineTo (v4 ^._x) (-(v4 ^._y))
-  lineTo (v2 ^._x) (-(v2 ^._y))
-  lineTo (v1 ^._x) (-(v1 ^._y))
+  moveTo (c ^._x + v1 ^._x) (c ^._y - v1 ^._y)
+  lineTo (c ^._x + v3 ^._x) (c ^._y - v3 ^._y)
+  lineTo (c ^._x + v4 ^._x) (c ^._y - v4 ^._y)
+  lineTo (c ^._x + v2 ^._x) (c ^._y - v2 ^._y)
+  lineTo (c ^._x + v1 ^._x) (c ^._y - v1 ^._y)
   fill
 
-drawSpring :: Vector RigidBody -> Spring -> Render ()
-drawSpring b spring = do
+drawSpring :: V2 Double -> Vector RigidBody -> Spring -> Render ()
+drawSpring c b spring = do
   let i1 = springBodyIndex1 spring
   let i2 = springBodyIndex2 spring
   let b1 = fromMaybe (error "") $ b !? i1
@@ -32,22 +32,22 @@ drawSpring b spring = do
   let p2 = c2 + (L.rotate (bodyDirection b2) $ springBodyPoint2 spring)
   setSourceRGB 0.8 0.8 0.8
   setLineWidth 1.0
-  moveTo (p1 ^._x) (-(p1 ^._y))
-  lineTo (p2 ^._x) (-(p2 ^._y))
+  moveTo (c ^._x + p1 ^._x) (c ^._y - p1 ^._y)
+  lineTo (c ^._x + p2 ^._x) (c ^._y - p2 ^._y)
   stroke
   setSourceRGB (bodyColor b1 ^._x) (bodyColor b1 ^._y) (bodyColor b1 ^._z)
-  moveTo (c1 ^._x) (-(c1 ^._y))
-  lineTo (p1 ^._x) (-(p1 ^._y))
+  moveTo (c ^._x + c1 ^._x) (c ^._y - c1 ^._y)
+  lineTo (c ^._x + p1 ^._x) (c ^._y - p1 ^._y)
   stroke
   setSourceRGB (bodyColor b2 ^._x) (bodyColor b2 ^._y) (bodyColor b2 ^._z)
-  moveTo (c2 ^._x) (-(c2 ^._y))
-  lineTo (p2 ^._x) (-(p2 ^._y))
+  moveTo (c ^._x + c2 ^._x) (c ^._y - c2 ^._y)
+  lineTo (c ^._x + p2 ^._x) (c ^._y - p2 ^._y)
   stroke
 
-drawSystem :: System -> Render ()
-drawSystem s = do
-  forM_ (bodies s) drawBody
-  forM_ (springs s) $ drawSpring (bodies s)
+drawSystem :: V2 Double -> System -> Render ()
+drawSystem c s = do
+  forM_ (bodies s) $ drawBody c
+  forM_ (springs s) $ drawSpring c (bodies s)
   selectFontFace ("monospace" :: S.Text) FontSlantNormal FontWeightNormal
   setFontSize 14
   setSourceRGB 0.9 0.9 0.9
@@ -62,7 +62,7 @@ testBodies = V.fromList
       (V3 0.7 0.6 0.5)
       1.0
       (50.0 *^ (V3 (V3 1.0 0.0 0.0) (V3 0.0 1.0 0.0) (V3 0.0 0.0 1.0)))
-      (V3 450.0 (-120.0) 0.0)
+      (V3 (-150.0) 150.0 0.0)
       (V3 0.0 0.0 0.0)
       (L.axisAngle (V3 0.0 0.0 1.0) (0.5 * pi))
       (V3 0.0 0.0 0.0)
@@ -70,7 +70,7 @@ testBodies = V.fromList
       (V3 0.5 0.6 0.7)
       1.0
       (1e3 *^ (V3 (V3 1.0 0.0 0.0) (V3 0.0 1.0 0.0) (V3 0.0 0.0 1.0)))
-      (V3 750.0 (-420.0) 0.0)
+      (V3 150.0 (-150.0) 0.0)
       (V3 0.0 0.0 0.0)
       (L.axisAngle (V3 0.0 0.0 1.0) pi)
       (V3 0.0 0.0 0.0)
@@ -107,18 +107,20 @@ data UI = UI
 
 queueFrame :: UI -> System -> IO ()
 queueFrame ui s = do
+  Rectangle _ _ w h <- widgetGetAllocation $ canvas ui
+  let y0 = fromIntegral h - 30.0
   draw_id <- on (canvas ui) draw $ do
-    drawSystem s
+    drawSystem (V2 (fromIntegral w / 2.0) (50.0 + (fromIntegral h - 300.0) / 2.0)) s
     setLineWidth 1.0
     setSourceRGB 0.8 0.8 0.8
-    moveTo 20.0 620.0
-    lineTo 1040.0 620.0
+    moveTo 20.0 y0
+    lineTo 1040.0 y0
     stroke
-    moveTo 30.0 630.0
-    lineTo 30.0 430.0
+    moveTo 30.0 (y0 + 10.0)
+    lineTo 30.0 (y0 - 200.0)
     stroke
-    drawDiagram (V2 25.0 620.0) (V3 0.3 0.6 0.6) (keDiagram ui)
-    drawDiagram (V2 25.0 620.0) (V3 0.6 0.6 0.3) (peDiagram ui)
+    drawDiagram (V2 25.0 y0) (V3 0.3 0.6 0.6) (keDiagram ui)
+    drawDiagram (V2 25.0 y0) (V3 0.6 0.6 0.3) (peDiagram ui)
   void $ timeoutAdd (frame ui s draw_id) $ round (1000.0 / fps)
 
 frame :: UI -> System -> ConnectId DrawingArea -> IO Bool
