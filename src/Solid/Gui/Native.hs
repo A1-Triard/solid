@@ -129,7 +129,7 @@ frame ui s draw_id = do
   nq <- checkMenuItemGetActive $ normalizeQ ui
   signalDisconnect draw_id
   let s1 = advance t nq s
-  let i = floor (5.0 * t)
+  let i = floor (20.0 * t)
   let ui1 = ui { keDiagram = addPoint i (kineticEnergy s / 100.0) (keDiagram ui), peDiagram = addPoint i (potentialEnergy s / 100.0) (peDiagram ui) }
   queueFrame ui1 s1
   widgetQueueDraw $ canvas ui1
@@ -157,7 +157,7 @@ drawDiagram (V2 x0 y0) (V3 cr cg cb) (Diagram ni d) = do
     go = V.forM_ d $ \my -> do
       (x, i, s) <- get
       case my of
-        Nothing -> put (x + 5.0, i + 1, s)
+        Nothing -> put (x + 2.0, i + 1, s)
         Just y -> do
           if s
             then lift $ moveTo x (y0 - y)
@@ -165,10 +165,10 @@ drawDiagram (V2 x0 y0) (V3 cr cg cb) (Diagram ni d) = do
           if i == ni + 1
             then do
               lift stroke
-              put (x + 5.0, i + 1, True)
+              put (x + 2.0, i + 1, True)
             else do
               lift $ lineTo x (y0 - y)
-              put (x + 5.0, i + 1, False)
+              put (x + 2.0, i + 1, False)
 
 fps :: Double
 fps = 50.0
@@ -193,8 +193,8 @@ solid = do
       { timer = (subtract t0) <$> currentSeconds
       , canvas = d
       , normalizeQ = n
-      , keDiagram = Diagram 0 (V.replicate 200 Nothing)
-      , peDiagram = Diagram 0 (V.replicate 200 Nothing)
+      , keDiagram = Diagram 0 (V.replicate 500 Nothing)
+      , peDiagram = Diagram 0 (V.replicate 500 Nothing)
       }
   queueFrame ui $ start dt testSprings testBodies
   widgetShowAll window
